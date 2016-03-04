@@ -1,0 +1,28 @@
+# matching tab width convention for diff/log etc.
+git config core.pager "less -x5"
+
+# better readable diff output
+[diff "igorpro"]
+xfuncname = "^([[:space:]]*(.*[Ff]unction|Macro|Window|Proc).*)$"
+
+
+.gitignore
+*.ipfT*
+
+.gitattributes
+.git* export-ignore
+*.ipf diff=igorpro
+# git diff --check should output something useful, remove the cr-at-eol if you are not on windows.
+*.ipf whitespace=cr-at-eol,indent-with-non-tab,tabwidth=4
+# mark files as binary
+# you can also add -delta if you regularly
+# commit large files of these types
+*.ibw binary
+*.xop binary
+*.pxp binary
+*.pxt binary
+*.uxp binary
+*.uxt binary
+*.ihf binary
+*.ifn binary
+*.ift binary
