@@ -2,6 +2,12 @@
 #pragma rtGlobals=3		// Use modern global access method and strict wave access.
 #include <Waves Average>
 
+// Menu item for easy execution
+Menu "Macros"
+	"Analyse particle data",  LoadAndGo(1)
+	"Re-analyse data", LoadAndGo(0)
+End
+
 // Colours are taken from Paul Tol SRON stylesheet
 // Define colours
 StrConstant SRON_1 = "0x4477aa;"
@@ -17,26 +23,26 @@ StrConstant SRON_10 = "0x332288; 0x88ccee; 0x44aa99; 0x117733; 0x999933; 0xddcc7
 StrConstant SRON_11 = "0x332288; 0x6699cc; 0x88ccee; 0x44aa99; 0x117733; 0x999933; 0xddcc77; 0x661100; 0xcc6677; 0x882255; 0xaa4499;"
 StrConstant SRON_12 = "0x332288; 0x6699cc; 0x88ccee; 0x44aa99; 0x117733; 0x999933; 0xddcc77; 0x661100; 0xcc6677; 0xaa4466; 0x882255; 0xaa4499;"
 
-//// @param hex		variable in hexadecimal
+/// @param hex		variable in hexadecimal
 Function hexcolor_red(hex)
 	Variable hex
 	return byte_value(hex, 2) * 2^8
 End
 
-//// @param hex		variable in hexadecimal
+/// @param hex		variable in hexadecimal
 Function hexcolor_green(hex)
 	Variable hex
 	return byte_value(hex, 1) * 2^8
 End
 
-//// @param hex		variable in hexadecimal
+/// @param hex		variable in hexadecimal
 Function hexcolor_blue(hex)
 	Variable hex
 	return byte_value(hex, 0) * 2^8
 End
 
-//// @param data	variable in hexadecimal
-//// @param byte	variable to determine R, G or B value
+/// @param data	variable in hexadecimal
+/// @param byte	variable to determine R, G or B value
 Static Function byte_value(data, byte)
 	Variable data
 	Variable byte
@@ -44,7 +50,7 @@ Static Function byte_value(data, byte)
 End
 
 // Loads the data and performs analysis
-//// @param	sel	option of 0 = reapply offsets, or 1 = do offsetting from scratch
+/// @param	sel	option of 0 = reapply offsets, or 1 = do offsetting from scratch
 Function LoadAndGo(sel)
 	Variable sel
 	
@@ -186,6 +192,8 @@ Function LoadAndGo(sel)
 End
 	
 // This function will load the threshold data from an Excel Workbook
+// Workbook must have Worksheets whose names correspond to the waves
+// e.g. sheet1 = WT, waves are WT1_p, WT2_p, WT1_a etc.
 Function LoadFromExcel()
 	
 	String sheet, wList
@@ -201,7 +209,7 @@ Function LoadFromExcel()
 	
 	for(i = 0; i < moviemax; i += 1)
 		sheet = StringFromList(i,S_Value)
-		XLLoadWave/S=sheet/R=(A1,CC1000)/O/K=3/W=1/P=path1 S_fileName
+		XLLoadWave/S=sheet/O/K=3/W=1/P=path1 S_fileName
 		PossWave[i] = sheet
 		wList = WaveList(sheet + "*_G",";","")
 		nGWaves = ItemsInList(wList)
@@ -309,17 +317,13 @@ Function OffsetAgain()
 		var=V_Value
 		SetScale/P x -(Vwave[var]*5),5,"", wgn
 		SetScale/P x -(Vwave[var]*5),5,"", wpn
-//		off=(w1[crsrA[var]]-((w1[crsrA[var]]-w1[crsrB[var]])/3))
-//		FindLevel /q w1, off
-//		SetScale/P x -(V_levelX*5),5,"", wgn
-//		SetScale/P x -(V_levelX*5),5,"", wpn
 	endfor
 End
 
 // Normalise waves. Takes g_n and p_n waves (normalised for time)
 // creates g_n which is scaled 1->0
 // creates p_a which is p_n normalised to cell size
-// creates p_t which is baseline subtracted
+// creates p_t which is p_a but then baseline subtracted
 // g waves are green fluorescence waves i.e. cytoplasmic ROI
 // p waves are puncta waves i.e. thresholded output
 Function NormWaves()
@@ -357,7 +361,7 @@ Function NormWaves()
 		w1 /= w2[0]
 		wmin = mean(w1,-60,-40)
 		w1 -= wmin
-		//n ormalise p_n to give 0->1
+		// normalise p_n to give 0->1
 //		wName = ReplaceString("_p_n",newName,"_p_t")
 //		Duplicate /O w1 $wName
 //		Wave w1 = $wName
@@ -386,7 +390,7 @@ end
 // ShowMe("map*") //looks at maps only
 // ShowMe("*") //resets to see show all windows
 // ShowMe("*GFP*") //shows all GFP windows
-////	@param	key		string to specify windows to show
+///	@param	key		string to specify windows to show
 Function ShowMe(key)
 	String key
 	
