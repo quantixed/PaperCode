@@ -9,3 +9,16 @@ This file is a series of Igor functions that will process and present hot-wiring
 ##ParseTimestampsFromOME
 
 Images are captured using Volocity. The images are managed via an mvd database. These can be imported into FIJI using BioFormats. Typically we read out timestamps from BioFormats using [planeTimings](https://github.com/openmicroscopy/bioformats/commit/c10ef163b269873e918376e807844b9c662342b1) macro written for ImageJ by Curtis Rueden. However, this doesn't work well for more complex databases. This Igor procedure will parse a textload from the BioFormats window in FIJI to give timestamps for each movie. Time stamps are important for optogenetic activation movies and for accurate averaging.
+
+##ColocAnalysis
+
+A workflow to analyse colocalisation in IgorPro (IP7 only). Select Coloc Analysis... from the Macros menu. Then in the panel selects the TIFFs for channel 1 and 2, then (optionally) the output from [ComDet](https://github.com/ekatrukha/ComDet) (channel 1 and/or channel 2) and then specify an output directory. The result is a move called finalTIFF which shows:
+
+- each channel in grayscale along with a red/green merge
+- plots of pixel intensities from each channel
+	- ch1 spots
+	- ch2 spots
+	- overlap between ch1 ch2
+- a line plot to show the number of spots detected for each channel and the number of spots which coincide.
+
+This procedure is actively maintained in [IgorImageTools](https://github.com/quantixed/IgorImageTools/). This is the version as used in the paper.
