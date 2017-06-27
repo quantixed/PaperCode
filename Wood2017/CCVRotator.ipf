@@ -44,6 +44,14 @@ Function LoadTIFFs()
 	// This is now the folder above segmented images
 	NewPath/O/Q ParentExpDiskFolder, ParentExpDiskFolderName
 	
+	// to store data
+	Make/O/N=(nFiles)/T root:labelWave
+	Make/O/N=(nFiles,2) root:axes0
+	Make/O/N=(nFiles,2) root:axes1
+	Wave/T labelWave = root:labelWave
+	Wave axes0 = root:axes0
+	Wave axes1 = root:axes1
+	
 	for (FileLoop = 0; FileLoop < nFiles; FileLoop += 1)
 		ThisFile = StringFromList(FileLoop, FileList)
 		imgName = ReplaceString(".tif",ThisFile,"")
@@ -58,28 +66,38 @@ Function LoadTIFFs()
 			origName = imgName
 		endif
 		ThatFile = origName + ".tif"
-		origName += "a"
+		// reset
+		origName = imgName + "_a"
 		ImageLoad/O/T=tiff/Q/P=parentExpDiskFolder/N=$origName ThatFile
 		Wave origMat = $origName
 		SubImages(origMat,segMat,origName,pxSize)
-		// store
 		SubImages(segMat,origMat,imgName,pxSize)
-		// store
+		// store data
+		labelWave[fileLoop] = imgName
+		WaveStats/Q/RMD=[][0] $(ReplaceString("-",imgName,"_") + "_m_r")
+		axes0[fileLoop][0] = V_Max
+		WaveStats/Q/RMD=[][1] $(ReplaceString("-",imgName,"_") + "_m_r")
+		axes0[fileLoop][1] = V_Max
+		WaveStats/Q/RMD=[][0] $(ReplaceString("-",origName,"_") + "_m_r")
+		axes1[fileLoop][0] = V_Max
+		WaveStats/Q/RMD=[][1] $(ReplaceString("-",origName,"_") + "_m_r")
+		axes1[fileLoop][1] = V_Max
 		KillWaves/Z segMat,origMat
 	endfor
 	// Get rid of CMap waves. These are a colorscale that get loaded with 8-bit color TIFFs
 	KillCMaps()
+	// Get rid of other junk
 	KillWaves/Z w0,w1
 	KillWaves/Z M_C,M_R,W_CumulativeVAR,W_Eigen,W_IE,W_IND,W_PSL,W_RMS,W_RSD
+	PlotThemOut()
 End
 
 ///	@param	txtName	accepts the string ThisFile
 Function CheckScale(txtName)
 	String txtName
 	
-	Wave/T/Z FileName
-	Wave/Z PixelSize
-	Wave/Z matA
+	Wave/T/Z FileName = root:FileName
+	Wave/Z PixelSize = root:PixelSize
 	Variable pxSize
 	
 	if (!WaveExists(FileName) || !WaveExists(PixelSize))
@@ -104,9 +122,11 @@ Function SubImages(matA,matB,picName,pxSize)
 	Wave m0 = $mName
 	Wave m1 = ProcessTiff(m0,pxSize)
 	Wave m2 = FindEV(m1)
+	KillWaves/Z m1
 End
 
 ///	@param	m0	matrix, image
+///	@param	pxSize	size of pixels in nm (1D)
 Function/WAVE ProcessTiff(m0,pxSize)
 	Wave m0
 	Variable pxSize
@@ -130,7 +150,8 @@ Function/WAVE ProcessTiff(m0,pxSize)
 	Wave m1 = $mName
 	// scale to nm
 	m1 *= pxSize
-	
+//	// now thread it so the segment is coniguous
+//	Threader(m1)
 	Return m1
 End
 
@@ -153,6 +174,66 @@ Function/WAVE FindEV(m1)
 	Wave m2 = $mName
 	Return m2
 End
+
+Function PlotThemOut()
+	SetDataFolder root:data:
+	String wList0 = WaveList("*_m_r",";","")
+	String wList1 = WaveList("*a_m_r",";","")
+	wList0 = RemoveFromList(wList1, wList0)
+	String wName0,wName1
+	
+	KillWindow/Z ccvPlot
+	Display/N=ccvPlot
+	
+	Variable nWaves = ItemsInList(wList0)
+	
+	Variable i
+	
+	for(i = 0; i < nWaves; i += 1)
+		wName0 = StringFromList(i, wList0)
+		wName1 = StringFromList(i, wList1)
+		Wave w0 = $wName0
+		Wave w1 = $wName1
+		AppendToGraph/W=ccvPlot w0[][1] vs w0[][0]
+		ModifyGraph/W=ccvPlot rgb($wName0)=(0,0,0,16384)	//0.25 alpha
+		AppendToGraph/W=ccvPlot w1[][1] vs w1[][0]
+		ModifyGraph/W=ccvPlot rgb($wName1)=(65535,0,65535,16384)	//0.25 alpha
+	endfor
+	
+	SetAxis/W=ccvPlot/A/N=1/E=2 left
+	SetAxis/W=ccvPlot/A/N=1/E=2 bottom
+	ModifyGraph width={Plan,1,bottom,left}
+End
+
+Function Threader(m1)
+	Wave m1
+	
+	Duplicate/O m1, tempW
+	Variable nRows = DimSize(m1,0)
+	Make/O/N=(nRows) threadW=0
+	Make/O/N=(nRows) strand1 = p
+	Make/O/N=(nRows) strand2 = p
+	Sort/R strand2,strand2
+	strand1[] = (mod(strand1[p],2) == 0) ? strand1[p] : NaN
+	strand2[] = (mod(strand2[p],2) == 1) ? strand2[p] : NaN
+	WaveTransform zapnans strand1
+	WaveTransform zapnans strand2
+	Concatenate/O/NP=0 {strand1,strand2}, threadW
+	
+	Variable i,j
+	
+	for(i = 0; i < nRows; i += 1)
+		j = threadW[i]
+		m1[i][] = tempW[j][q]
+	endfor
+	
+	KillWaves tempW
+End
+
+
+//------------------//
+// Helper Functions //
+//------------------//
 
 // Kill CMap wave if it has been loaded
 Function KillCMaps()
@@ -194,6 +275,7 @@ Function CoastClear()
 	KillVariables/A/Z
 End
 
+// load csv with fileName and pxelSize
 Function GetPixelData()
 	LoadWave/A/W/J/D/O/K=1/L={0,1,0,1,1}
 	LoadWave/A/W/J/D/O/K=2/L={0,1,0,0,1} S_Path + S_fileName
