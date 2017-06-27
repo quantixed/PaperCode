@@ -208,26 +208,24 @@ End
 Function Threader(m1)
 	Wave m1
 	
-	Duplicate/O m1, tempW
+	String mName = NameOfWave(m1)
+	MatrixOp/O c0 = col(m1,0)
+	MatrixOp/O c1 = col(m1,1)
 	Variable nRows = DimSize(m1,0)
-	Make/O/N=(nRows) threadW=0
-	Make/O/N=(nRows) strand1 = p
-	Make/O/N=(nRows) strand2 = p
-	Sort/R strand2,strand2
-	strand1[] = (mod(strand1[p],2) == 0) ? strand1[p] : NaN
-	strand2[] = (mod(strand2[p],2) == 1) ? strand2[p] : NaN
-	WaveTransform zapnans strand1
-	WaveTransform zapnans strand2
-	Concatenate/O/NP=0 {strand1,strand2}, threadW
+	Make/O/N=(nRows)/FREE threadW=0
+	// measure angles, store in threadW
+	Variable theta
 	
-	Variable i,j
+	Variable i
 	
 	for(i = 0; i < nRows; i += 1)
-		j = threadW[i]
-		m1[i][] = tempW[j][q]
+		theta = atan2(c1[i],c0[i])
+		threadW[i] = theta
 	endfor
 	
-	KillWaves tempW
+	Sort threadW, c0, c1
+	// put back together and overwirte original
+	Concatenate/O/KILL {c0,c1}, $mName
 End
 
 
