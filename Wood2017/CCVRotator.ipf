@@ -135,7 +135,7 @@ Function/WAVE ProcessTiff(m0,pxSize)
 	Variable ySize = dimsize(m0,1)
 	Variable totalSize = xSize * ySize
 	
-	Make/O/N=(xSize,ySize) matX,matY
+	Make/O/D/N=(xSize,ySize) matX,matY
 	// Find locations of segmented pixels
 	matX[][] = (m0[p][q] > 0) ? p : NaN
 	matY[][] = (m0[p][q] > 0) ? q : NaN
@@ -150,8 +150,6 @@ Function/WAVE ProcessTiff(m0,pxSize)
 	Wave m1 = $mName
 	// scale to nm
 	m1 *= pxSize
-//	// now thread it so the segment is coniguous
-//	Threader(m1)
 	Return m1
 End
 
@@ -172,6 +170,8 @@ Function/WAVE FindEV(m1)
 	String mName = NameOfWave(m1) + "_r"
 	Duplicate/O M_R, $mName
 	Wave m2 = $mName
+	// now thread it so the segment is coniguous
+	Threader(m2)
 	Return m2
 End
 
@@ -205,6 +205,7 @@ Function PlotThemOut()
 	ModifyGraph width={Plan,1,bottom,left}
 End
 
+///	@param	m1	2D wave with 1st two columns as XY coords
 Function Threader(m1)
 	Wave m1
 	
@@ -212,7 +213,7 @@ Function Threader(m1)
 	MatrixOp/O c0 = col(m1,0)
 	MatrixOp/O c1 = col(m1,1)
 	Variable nRows = DimSize(m1,0)
-	Make/O/N=(nRows)/FREE threadW=0
+	Make/O/FREE/N=(nRows) threadW=0
 	// measure angles, store in threadW
 	Variable theta
 	
@@ -223,8 +224,13 @@ Function Threader(m1)
 		threadW[i] = theta
 	endfor
 	
+	// sort x coords and ycoords based on theta
 	Sort threadW, c0, c1
-	// put back together and overwirte original
+	// add last point equal to first to complete the shape
+	InsertPoints nRows,1, c0,c1
+	c0[nRows] = c0[0]
+	c1[nRows] = c1[0]
+	// put back together and overwrite original
 	Concatenate/O/KILL {c0,c1}, $mName
 End
 
@@ -278,3 +284,58 @@ Function GetPixelData()
 	LoadWave/A/W/J/D/O/K=1/L={0,1,0,1,1}
 	LoadWave/A/W/J/D/O/K=2/L={0,1,0,0,1} S_Path + S_fileName
 End
+
+
+//------------------//
+//  Threader help   //
+//------------------//
+
+function oval(xp, yp)
+	wave xp, yp
+	variable x1, y1, x2, y2, x3, y3, x4, y4
+ 
+	wavestats/q xp
+	x1 = v_min
+	y1= yp[V_minloc]
+ 
+	x3 = V_max
+	y3 = yp[V_maxloc]
+ 
+	wavestats/q yp
+	x2 = xp[V_maxloc]
+	y2 = v_max
+ 
+	x4 = xp[V_minloc]
+	y4 = V_min
+ 
+	duplicate /o xp x1p, x2p, x3p, x4p
+	duplicate /o yp y1p, y2p, y3p, y4p
+ 
+	x1p = (x1 <= xp[p] && xp[p] < x2) && (y1 <= yp[p] && yp[p] < y2) ? xp[p] : NaN
+	y1p = (x1 <= xp[p] && xp[p] < x2) && (y1 <= yp[p] && yp[p] < y2) ? yp[p] : NaN
+	WaveTransform zapnans x1p
+	WaveTransform zapnans y1p
+	sort x1p, x1p, y1p
+ 
+	x2p = (x2 <= xp[p] && xp[p] < x3) && (y2 >= yp[p] && yp[p] > y3) ? xp[p] : NaN
+	y2p = (x2 <= xp[p] && xp[p] < x3) && (y2 >= yp[p] && yp[p] > y3) ? yp[p] : NaN
+	WaveTransform zapnans x2p
+	WaveTransform zapnans y2p
+	sort x2p, x2p, y2p
+ 
+	x3p = (x3 >= xp[p] && xp[p] > x4) && (y3 >= yp[p] && yp[p] > y4) ? xp[p] : NaN
+	y3p = (x3 >= xp[p] && xp[p] > x4) && (y3 >= yp[p] && yp[p] > y4) ? yp[p] : NaN
+	WaveTransform zapnans x3p
+	WaveTransform zapnans y3p
+	sort /r x3p, x3p, y3p
+ 
+	x4p = (x4 >= xp[p] && xp[p] > x1) && (y4 <= yp[p] && yp[p] < y1) ? xp[p] : NaN
+	y4p = (x4 >= xp[p] && xp[p] > x1) && (y4 <= yp[p] && yp[p] < y1) ? yp[p] : NaN
+	WaveTransform zapnans x4p
+	WaveTransform zapnans y4p
+	sort /r x4p, x4p, y4p
+ 
+	Concatenate /O /NP /KILL {x1p,x2p,x3p,x4p}, x_oval
+	Concatenate /O /NP /KILL {y1p,y2p,y3p,y4p}, y_oval
+ 
+end
