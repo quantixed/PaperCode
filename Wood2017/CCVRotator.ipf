@@ -11,6 +11,13 @@ Function CCVRotator()
 	LoadTIFFs()
 End
 
+// to run this you need a text wave specifying the filename of the files you are analysing
+// and a numeric wave called pixelSize that has the size of the pixels in that image.
+// You can put this in yourself or, if it's missing, Igor wants to load a csv with those two things
+// as first two columns (in that order).
+// Then point Igor to your directory of segmented images. Note that the unsegmented images need
+// to be in the directory above.
+// Images are segmented with pure white or pure black in approximate ellipses around vesicle and coat
 Function LoadTIFFs()
 	// Check we have FileName wave and PixelSize
 	Wave/T/Z FileName = root:FileName
@@ -92,6 +99,7 @@ Function LoadTIFFs()
 	PlotThemOut()
 End
 
+// This function looks up the pixelsize for the image from the FileName and PixelSize waves
 ///	@param	txtName	accepts the string ThisFile
 Function CheckScale(txtName)
 	String txtName
@@ -112,6 +120,10 @@ Function CheckScale(txtName)
 	return pxSize
 End
 
+///	@param	matA	1st image
+///	@param	matB	2nd image. Subtraction of 2nd image from 1st image.
+///	@param	picName	Image name
+///	@param	pxSize	the pixelsize in nm
 Function SubImages(matA,matB,picName,pxSize)
 	Wave matA,matB
 	String picName
@@ -125,6 +137,7 @@ Function SubImages(matA,matB,picName,pxSize)
 	KillWaves/Z m1
 End
 
+// Find location of segmented pixels
 ///	@param	m0	matrix, image
 ///	@param	pxSize	size of pixels in nm (1D)
 Function/WAVE ProcessTiff(m0,pxSize)
@@ -153,6 +166,7 @@ Function/WAVE ProcessTiff(m0,pxSize)
 	Return m1
 End
 
+// This function finds the eigenvectors and rotates the point set
 ///	@param	m1	2D wave of xy coords
 Function/WAVE FindEV(m1)
 	Wave m1
@@ -170,11 +184,12 @@ Function/WAVE FindEV(m1)
 	String mName = NameOfWave(m1) + "_r"
 	Duplicate/O M_R, $mName
 	Wave m2 = $mName
-	// now thread it so the segment is coniguous
+	// now thread it so the segment is contiguous
 	Threader(m2)
 	Return m2
 End
 
+// Make the plot to show the vesicle in black and coat in purple 0.25 alpha
 Function PlotThemOut()
 	SetDataFolder root:data:
 	String wList0 = WaveList("*_m_r",";","")
@@ -205,6 +220,7 @@ Function PlotThemOut()
 	ModifyGraph width={Plan,1,bottom,left}
 End
 
+// This sorts the ellipse pixels so that they are in the correct order
 ///	@param	m1	2D wave with 1st two columns as XY coords
 Function Threader(m1)
 	Wave m1
@@ -284,58 +300,3 @@ Function GetPixelData()
 	LoadWave/A/W/J/D/O/K=1/L={0,1,0,1,1}
 	LoadWave/A/W/J/D/O/K=2/L={0,1,0,0,1} S_Path + S_fileName
 End
-
-
-//------------------//
-//  Threader help   //
-//------------------//
-
-function oval(xp, yp)
-	wave xp, yp
-	variable x1, y1, x2, y2, x3, y3, x4, y4
- 
-	wavestats/q xp
-	x1 = v_min
-	y1= yp[V_minloc]
- 
-	x3 = V_max
-	y3 = yp[V_maxloc]
- 
-	wavestats/q yp
-	x2 = xp[V_maxloc]
-	y2 = v_max
- 
-	x4 = xp[V_minloc]
-	y4 = V_min
- 
-	duplicate /o xp x1p, x2p, x3p, x4p
-	duplicate /o yp y1p, y2p, y3p, y4p
- 
-	x1p = (x1 <= xp[p] && xp[p] < x2) && (y1 <= yp[p] && yp[p] < y2) ? xp[p] : NaN
-	y1p = (x1 <= xp[p] && xp[p] < x2) && (y1 <= yp[p] && yp[p] < y2) ? yp[p] : NaN
-	WaveTransform zapnans x1p
-	WaveTransform zapnans y1p
-	sort x1p, x1p, y1p
- 
-	x2p = (x2 <= xp[p] && xp[p] < x3) && (y2 >= yp[p] && yp[p] > y3) ? xp[p] : NaN
-	y2p = (x2 <= xp[p] && xp[p] < x3) && (y2 >= yp[p] && yp[p] > y3) ? yp[p] : NaN
-	WaveTransform zapnans x2p
-	WaveTransform zapnans y2p
-	sort x2p, x2p, y2p
- 
-	x3p = (x3 >= xp[p] && xp[p] > x4) && (y3 >= yp[p] && yp[p] > y4) ? xp[p] : NaN
-	y3p = (x3 >= xp[p] && xp[p] > x4) && (y3 >= yp[p] && yp[p] > y4) ? yp[p] : NaN
-	WaveTransform zapnans x3p
-	WaveTransform zapnans y3p
-	sort /r x3p, x3p, y3p
- 
-	x4p = (x4 >= xp[p] && xp[p] > x1) && (y4 <= yp[p] && yp[p] < y1) ? xp[p] : NaN
-	y4p = (x4 >= xp[p] && xp[p] > x1) && (y4 <= yp[p] && yp[p] < y1) ? yp[p] : NaN
-	WaveTransform zapnans x4p
-	WaveTransform zapnans y4p
-	sort /r x4p, x4p, y4p
- 
-	Concatenate /O /NP /KILL {x1p,x2p,x3p,x4p}, x_oval
-	Concatenate /O /NP /KILL {y1p,y2p,y3p,y4p}, y_oval
- 
-end

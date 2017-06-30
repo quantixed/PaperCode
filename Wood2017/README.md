@@ -22,3 +22,9 @@ A workflow to analyse colocalisation in IgorPro (IP7 only). Select Coloc Analysi
 - a line plot to show the number of spots detected for each channel and the number of spots which coincide.
 
 This procedure is actively maintained in [IgorImageTools](https://github.com/quantixed/IgorImageTools/). This is the version as used in the paper.
+
+## CCVRotator
+
+This will take a set of segmented EM images and extract features by comparing them with the original images. A directory of images with vesicle and coat segmented as white or black overwrite are used as segmented images. In the directory above are the originals. Running CCVRotator will pull out the white or black pixels by subtraction.
+
+The location of these pixels is used to get eigenvectors and rotate the ellipse so that the semimajor axis is at x where y = 0 and the semiminor is at y where x = 0. Max of x and max of y are taken as the radii.
