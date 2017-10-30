@@ -1,4 +1,9 @@
-# Wood et al. 2016
+# Wood et al. 2017
+
+The code in this repo relates to our paper on hot-wiring endocytosis:
+
+- Wood, Laura A., Clarke, Nicholas I., Sarkar, Sourav & Royle, Stephen J. [Hot-wiring clathrin-mediated endocytosis in human cells](https://www.biorxiv.org/content/early/2016/12/14/061986) (2016) doi: 10.1101/061986
+- Wood, Laura A., Larocque, Gabrielle, Clarke, Nicholas I., Sarkar, Sourav & Royle, Stephen J. [New tools for “hot-wiring” clathrin-mediated endocytosis with temporal and spatial precision](http://dx.doi.org/10.1083/jcb.201702188) (2017) doi:10.1083/jcb.201702188
 
 Two procedures were used for analysis of confocal images of hot-wiring endocytosis.
 
